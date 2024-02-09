@@ -15,19 +15,17 @@ class TodoController extends Controller
     public function index()
     {
         $query = request()->query('search');
-        $data = Todo::select('id','activity','start_date','end_date')->orderBy('id')->get();
+        $id_user = auth()->id();
+        $data = Todo::select('id','activity','start_date','end_date')->where('user_id', $id_user)->orderBy('id');
 
         if($query != null){
             $data->where('activity', $query);
         }
 
-        $data = $data->get();
-
        return response()->json([
         "status" => "ok",
         "data" => $data,
        ], 200);
-    //    return view('todo', ['data'=> $data]);
     }
 
     /**
@@ -47,6 +45,7 @@ class TodoController extends Controller
         ]);
 
         $validated['is_done'] = false;
+        $validated['user_id'] = auth()->id();
         $tags = $validated['tags'];
         unset($validated['tags']);
 
@@ -58,7 +57,7 @@ class TodoController extends Controller
             foreach($tags as $tag){
                 $dt = [
                     'todo_id' => $result->id,
-                    'tag_id' => $tag["id"]
+                    'tag_id' => $tag['id']
                 ];
 
                 $createdTags[] = TodoTag::create($dt);
@@ -70,13 +69,13 @@ class TodoController extends Controller
             DB::rollBack();
             return response()->json([
                 'message' => 'data failed'
-            ]);
+            ], 500);
         }
 
         return response()->json([
             'message' => 'data create sucessfully',
             'data' => $result
-        ]);
+        ], 201);
     }
 
     /**
@@ -84,12 +83,26 @@ class TodoController extends Controller
      */
     public function show(string $id)
     {
-        $data = Todo::where('id', $id)->first();
+        $id_user = auth()->id();
+        $tag = DB::table('tags')->select('tags.id','tags.tag')
+        ->join('todos_tags','tags.id','=','todos_tags.tag_id')->where('todo_id', $id)->get();
+        $data = Todo::where('id', $id)->where('user_id', $id_user)->first();
 
-        return response()->json([
-            'status' => 'ok',
-            'data' => $data,
-        ]);
+        $dataArray = [
+            'todo' => $data,
+            'tag' => $tag
+        ];
+
+        if($dataArray != null){
+            return response()->json([
+                'status' => 'ok',
+                'data' => $dataArray,
+            ], 200);
+        }else{
+            return response()->json([
+                'message' => 'data not found'
+            ], 404);
+        }
     }
 
     /**
@@ -107,7 +120,8 @@ class TodoController extends Controller
             'end_date' => 'required',
         ]);
 
-        $data = Todo::find($id);
+        $id_user = auth()->id();
+        $data = Todo::where('id', $id)->where('user_id', $id_user)->first();
         if($data == null){
             return response()->json([
                  'message'=> 'todo not found'
@@ -118,12 +132,13 @@ class TodoController extends Controller
         if($result == false){
             return response()->json([
                 'message' => 'data failed to upadate'
-            ],400);
+            ],500);
         }
+
         return response()->json([
             'status' => 'ok',
             'data'=> $data
-        ]);
+        ], 200);
     }
 
     /**
@@ -131,7 +146,8 @@ class TodoController extends Controller
      */
     public function destroy(string $id)
     {
-        $data = Todo::find($id);
+        $id_user = auth()->id();
+        $data = Todo::where('id', $id)->where('user_id', $id_user)->first();
         DB::table('todos_tags')->where('todo_id',$id)->delete();
         if($data == null){
             return response()->json([
@@ -140,10 +156,10 @@ class TodoController extends Controller
         }
 
         $result = $data->delete();
-        if($result == true){
+        if($result == false){
             return response()->json([
-                'message' => 'data delete sucessfully'
-            ]);
+                'message' => 'data failed delete'
+            ], 500);
         }
 
         return response()->noContent();
@@ -154,7 +170,8 @@ class TodoController extends Controller
             'is_done' => 'required',
         ]);
 
-        $data = Todo::find($id);
+        $id_user = auth()->id();
+        $data = Todo::where('id', $id)->where('user_id', $id_user)->first();
         if($data == null){
             return response()->json([
                  'message'=> 'todo not found'
@@ -165,8 +182,9 @@ class TodoController extends Controller
         if($result == false){
             return response()->json([
                 'message' => 'data failed to upadate'
-            ],400);
+            ],500);
         }
+
         return response()->json([
             'status' => 'ok',
             'data'=> $data

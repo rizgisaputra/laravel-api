@@ -13,7 +13,8 @@ class TagController extends Controller
      */
     public function index()
     {
-        $data = Tag::select('id','tag')->orderBy('id')->get();
+        $id_user = auth()->id();
+        $data = Tag::select('id','tag','user_id')->orderBy('id')->where('user_id', $id_user)->get();
 
        return response()->json([
         "status" => "ok",
@@ -30,13 +31,21 @@ class TagController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'tag' => 'required'
+            'tag' => 'required',
         ]);
 
-        Tag::create($validated);
+        $validated['user_id'] = auth()->id();
+        $result = Tag::create($validated);
+
+        if($result == false){
+           return response()->json([
+            'message' => 'failed to create data'
+           ], 500);
+        }
+
         return response()->json([
             'message' => 'data create sucessfully'
-        ],200);
+        ],201);
     }
 
     /**
@@ -44,12 +53,19 @@ class TagController extends Controller
      */
     public function show(string $id)
     {
-        $data = Tag::where('id', $id)->first();
+        $id_user = auth()->id();
+        $data = Tag::where('id', $id)->where('user_id', $id_user)->first();
+
+        if($data != null){
+            return response()->json([
+                'status' => 'ok',
+                'data' => $data,
+            ], 200);
+        }
 
         return response()->json([
-            'status' => 'ok',
-            'data' => $data,
-        ], 200);
+            'message' => 'data not found'
+        ], 404);
     }
 
     /**
@@ -65,7 +81,9 @@ class TagController extends Controller
           'tag' => 'required'
        ]);
 
-       $data = Tag::find($id);
+       $id_user = auth()->id();
+       $data = Tag::where('id', $id)->where('user_id', $id_user)->first();
+
        if($data == null){
         return response()->json([
             'message' => 'data not found'
@@ -90,19 +108,21 @@ class TagController extends Controller
      */
     public function destroy(string $id)
     {
-        $data = Tag::find($id);
         DB::table('todos_tags')->where('tag_id', $id)->delete();
+        $id_user = auth()->id();
+        $data = Tag::where('id', $id)->where('user_id', $id_user)->first();
+
         if($data == null){
             return response()->json([
                 'message'=> 'data not found'
-            ]);
+            ], 404);
         }
 
         $result = $data->delete();
         if($result == false){
             return response()->json([
                 'message' => 'data failed delete'
-            ]);
+            ], 500);
         }
 
         return response()->noContent();

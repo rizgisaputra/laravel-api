@@ -37,7 +37,7 @@ class TodoTagController extends Controller
         TodoTag::create($validate);
         return response()->json([
             'message' => 'data create sucessfully'
-        ], 200);
+        ], 201);
     }
 
     /**
@@ -70,20 +70,20 @@ class TodoTagController extends Controller
         if($data == null){
             return response()->json([
                 'message' => 'data not found'
-            ]);
+            ], 404);
         }
 
         $result = $data->update($validate);
         if($result == false){
             return response()->json([
                 'message' => 'failed to update data'
-            ]);
+            ], 500);
         }
 
         return response()->json([
             'status' => 'ok',
             'data' => $data
-        ]);
+        ],200);
     }
 
     /**

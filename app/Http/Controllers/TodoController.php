@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Todo;
 use App\Models\TodoTag;
+use App\Models\User;
+use App\Models\UserTodo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,13 +16,8 @@ class TodoController extends Controller
      */
     public function index()
     {
-        $query = request()->query('search');
         $id_user = auth()->id();
-        $data = Todo::select('id','activity','start_date','end_date')->where('user_id', $id_user)->orderBy('id');
-
-        if($query != null){
-            $data->where('activity', $query);
-        }
+        $data = Todo::select('id','activity','start_date','end_date')->where('user_id', $id_user)->orderBy('id')->get();
 
        return response()->json([
         "status" => "ok",
@@ -28,9 +25,6 @@ class TodoController extends Controller
        ], 200);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     /**
      * Store a newly created resource in storage.
      */
@@ -189,5 +183,54 @@ class TodoController extends Controller
             'status' => 'ok',
             'data'=> $data
         ]);
+    }
+
+    public function shareTodo(Request $request){
+
+        $validate = $request->validate([
+            'todo_id' => 'required',
+            'user_id' => 'required'
+        ]);
+
+        $id_self = auth()->id();
+        $data_todo = Todo::where('id', $validate['todo_id'])->where('user_id', $id_self)->first();
+        $data_user = User::find($validate['user_id']);
+
+        if($data_todo == null){
+            return response()->json([
+                'message' => 'data todo not found or todo is not yours'
+            ], 404);
+        }else if($data_user == null){
+            return response()->json([
+                'message' => 'data user not found'
+            ], 404);
+        }else if($validate['user_id'] == $id_self){
+            return response()->json([
+                'message' => 'cannot share todo for self'
+            ], 500);
+        }
+
+        UserTodo::create($validate);
+        return response()->json([
+            'message' => 'share todo sucessfully'
+        ], 201);
+    }
+
+    public function getSharedTodo(Request $request){
+        $id_user = auth()->id();
+        $data = DB::table('todos')->select('todos.id','todos.activity','todos.start_date','todos.end_date')
+        ->join('users_todos','todos.id','=','users_todos.todo_id')
+        ->where('users_todos.user_id', $id_user)->get();
+
+        if($data == null){
+            return response()->json([
+                'message' => 'data not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $data
+        ], 200);
     }
 }

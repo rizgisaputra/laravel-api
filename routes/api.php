@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SubtaskTodoController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TodoTagController;
@@ -33,6 +34,8 @@ Route::middleware(['auth:api'])->group( function (){
     Route::put('/todo/{id}', [TodoController::class, 'update'])->name('todo.update');
     Route::delete('/todo/{id}', [TodoController::class, 'destroy'])->name('todo.destroy');
     Route::put('/todo/{id}/checked', [TodoController::class, 'updateIsDone'])->name('todo.updateIsDone');
+    Route::post('/share-todo', [TodoController::class,'shareTodo'])->name('todo.shareTodo');
+    Route::get('get-shared-todo',[TodoController::class, 'getSharedTodo'])->name('todo.getSharedTodo');
 
     Route::post('/tags',[TagController::class,'store'])->name('tag.store');
     Route::get('/tags',[TagController::class,'index'])->name('tag.index');
@@ -40,11 +43,16 @@ Route::middleware(['auth:api'])->group( function (){
     Route::put('/tag/{id}',[TagController::class,'update'])->name('tag.update');
     Route::delete('/tag/{id}',[TagController::class,'destroy'])->name('tag.delete');
 
-    // Route::post('/todos-tags',[TodoTagController::class,'store'])->name('todo_tag.store');
     Route::get('/todos-tags',[TodoTagController::class,'index'])->name('todo_tag.index');
     Route::get('/todo-tag/{id}', [TodoTagController::class, 'show'])->name('todo_tag.show');
     Route::put('/todo-tag/{id}', [TodoTagController::class, 'update'])->name('todo-tag.update');
     Route::delete('todo-tag/{id}', [TodoTagController::class, 'destroy'])->name('todo-tag.destroy');
+
+    Route::get('/subtask', [SubtaskTodoController::class,'index'])->name('subtask.index');
+    Route::get('/subtask/{id}', [SubtaskTodoController::class, 'show'])->name('subtask.show');
+    Route::post('/subtask', [SubtaskTodoController::class,'store'])->name('subtask-todo.store');
+    Route::put('/set-responsible/{id}', [SubtaskTodoController::class, 'setResponsible'])->name('subtask.set-responsible');
+    Route::put('/checked-subtask/{id}', [SubtaskTodoController::class,'isDone'])->name('subtask.isDone');
 });
 
 
